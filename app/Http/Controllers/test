@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+
+class ApiController extends Controller
+{
+    //
+    public function loginAitAction(Request $request)
+    {
+        $validatedData = $request->validate([
+            'LoginID' => 'required|string',
+            'latitude' => 'nullable|string',
+            'longitude' => 'nullable|string',
+            'device_id' => 'required|string',
+            'device_type' => 'nullable|string|in:android,ios',
+            'fire_base_id' => 'nullable|string',
+            'ver' => 'nullable|string',
+        ]);
+
+        $LoginID = $validatedData['LoginID'];
+        $latitude = $validatedData['latitude'] ?? "0.0";
+        $longitude = $validatedData['longitude'] ?? "0.0";
+        $device_id = $validatedData['device_id'];
+        $device_type = $validatedData['device_type'] ?? "android";
+        $fire_base_id = $validatedData['fire_base_id'] ?? "";
+        $ver = $validatedData['ver'] ?? "";
+
+        try {
+            DB::beginTransaction();
+
+            $user = User::where('LoginID', $LoginID)->first();
+
+            if (!$user) {
+                throw new \Exception('Invalid login ID.');
+            }
+
+            if (in_array($user->Role, ['franchise', 'subfranchise'])) {
+                throw new \Exception('Invalid login ID.');
+            }
+
+            if ($user->device_id && $user->device_id !== $device_id) {
+                throw new \Exception('You are not authorized for this device.');
+            }
+
+            if (strtolower($user->StaffStatus) !== 'ac') {
+                throw new \Exception('Your account is not active.');
+            }
+
+            if ($user->App_Access_Status == '2') {
+                throw new \Exception('This account has been deactivated by admin.');
+            }
+
+            // Update user details
+            $user->update([
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'device_id' => $device_id,
+                'device_type' => $device_type,
+                'device_token' => $this->generateSecretHashKey(),
+                'gps_status' => 'on',
+                'Attendance_time' => now(),
+                'ver' => $ver,
+                'fire_base_id' => $fire_base_id,
+            ]);
+
+            // Retrieve additional details
+            $productDetails = $user->getAITProductDetails();
+            $farmerVillageData = $user->getFarmerVillage();
+            $brandList = $user->getBrandList();
+
+            DB::commit();
+
+            return response()->json([
+                'error_code' => 0,
+                'response_string' => 'Login successful.',
+                'Get_all_user_data' => $user,
+                'Get_all_farmer_village' => $farmerVillageData,
+                'Get_all_product_detail' => $productDetails,
+                'brand_list' => $brandList,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Login Error: ' . $e->getMessage());
+
+            return response()->json([
+                'error_code' => 1,
+                'response_string' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    private function generateSecretHashKey()
+    {
+        return bin2hex(random_bytes(16));
+    }
+}

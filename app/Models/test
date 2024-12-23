@@ -1,0 +1,447 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\DB;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    /**
+     * The default table name for this model.
+     *
+     * @var string
+     */
+    protected $table = 'logi_users'; // Default table
+    protected $guarded = [];
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'latitude',
+        'longitude',
+        'device_id',
+        'device_type',
+        'device_token',
+        'gps_status',
+        'Attendance_time',
+        'ver',
+        'fire_base_id',
+    ];
+
+    /**
+     * Relationship to the logi_sub_franchise_state table.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function subFranchiseStates()
+    {
+        return $this->hasMany('App\Models\LogiSubFranchiseState', 'user_id');
+    }
+
+    /**
+     * Relationship to the logi_farmer_village table.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function farmerVillages()
+    {
+        return $this->hasMany('App\Models\LogiFarmerVillage', 'user_id');
+    }
+
+    /**
+     * Relationship to the brand_name field in the logi_users table.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function brands()
+    {
+        return $this->hasMany('App\Models\Brand', 'user_id');
+    }
+
+    public function userParent()
+    {
+        return $this->belongsTo(User::class, 'parent_id'); // Assuming 'parent_id' is the foreign key
+    }
+
+    // public function parent()
+    //     {
+    //         return $this->belongsTo(User::class, 'franchise_id'); // Adjust 'franchise_id' to match the correct column
+    //     }
+
+
+    /**
+     * Get details from AIT product.
+     *
+     * @return array
+     */
+    // public function getAITProductDetails($stateId, $id)
+    // {
+    //     // Get the user details
+    //     $user = $this->find($id);
+    //     $userParent = $user->userParent; // Assuming the relationship is correct
+    
+    //     // Get sub-franchise states (fixing the SQL query)
+    //     $subFranchiseStates = DB::table('logi_sub_franchise_state as fs')
+    //         ->join('state as s', 'fs.state_id', '=', 's.id')
+    //         ->where('fs.state_id', $stateId)
+    //         ->where('fs.status', 1)
+    //         ->select('fs.state_id', 's.name as state_name') // Removed fs.name and used s.name
+    //         ->groupBy('fs.state_id', 's.name') // Adjusted GROUP BY
+    //         ->get();
+    
+    //     $aitList = [];
+    
+    //     foreach ($subFranchiseStates as $subFranchiseState) {
+    //         // Get categories for each state
+    //         $categories = DB::table('logi_sub_franchise_state as sp')
+    //             ->join('category as c', 'c.id', '=', 'sp.cat_id')
+    //             ->where('sp.state_id', $subFranchiseState->state_id)
+    //             ->where('sp.status', 1)
+    //             ->groupBy('sp.cat_id')
+    //             ->orderBy('c.name')
+    //             ->get();
+    
+    //         $categoryArray = [];
+    
+    //         foreach ($categories as $category) {
+    //             $categoryDetails = DB::table('category')
+    //                 ->where('id', $category->cat_id)
+    //                 ->first();
+    
+    //             // Get subcategory details
+    //             $subCategories = DB::table('logi_sub_franchise_state')
+    //                 ->where('state_id', $category->state_id)
+    //                 ->where('cat_id', $categoryDetails->id)
+    //                 ->where('status', 1)
+    //                 ->groupBy('sub_id')
+    //                 ->get();
+    
+    //             $subcategoryArray = [];
+    
+    //             foreach ($subCategories as $subCategory) {
+    //                 $subcategory = DB::table('subcategory')
+    //                     ->where('id', $subCategory->sub_id)
+    //                     ->where('deleted', 1)
+    //                     ->first();
+    
+    //                 // Get rate details based on user role
+    //                 if ($userParent->Role === 'franchise') {
+    //                     $rate = DB::table('logi_franchise_state')
+    //                         ->where('cat_id', $category->cat_id)
+    //                         ->where('sub_id', $subCategory->sub_id)
+    //                         ->where('f_id', $user->franchise_id)
+    //                         ->where('state_id', $stateId)
+    //                         ->where('status', 1)
+    //                         ->first();
+    //                 } else {
+    //                     $rate = DB::table('logi_sub_franchise_state')
+    //                         ->where('cat_id', $category->cat_id)
+    //                         ->where('sub_id', $subCategory->sub_id)
+    //                         ->where('sub_f_id', $user->franchise_id)
+    //                         ->where('state_id', $stateId)
+    //                         ->where('status', 1)
+    //                         ->first();
+    //                 }
+    
+    //                 $subcategoryData = [
+    //                     'sub_id' => $subcategory->id,
+    //                     'subcategory_name' => $subcategory->name,
+    //                     'rate' => $rate->rate ?? null,
+    //                     'subcategory_desc' => $subcategory->description,
+    //                     'subcategory_img' => url('/uploads/platinum_img/' . $subcategory->image)
+    //                 ];
+    
+    //                 $subcategoryArray[] = $subcategoryData;
+    //             }
+    
+    //             // Build category data
+    //             $categoryData = [
+    //                 'cat_id' => $categoryDetails->id,
+    //                 'category_name' => $categoryDetails->name,
+    //                 'species' => $categoryDetails->species,
+    //                 'subcategory_list' => $subcategoryArray
+    //             ];
+    
+    //             $categoryArray[] = $categoryData;
+    //         }
+    
+    //         // Final AIT product data
+    //         $aitList[] = [
+    //             'state_id' => $subFranchiseState->state_id,
+    //             'state_name' => $subFranchiseState->state_name, // Using state_name from the join
+    //             'state_code' => strtoupper(substr($subFranchiseState->state_name, 0, 3)),
+    //             'category_list' => $categoryArray
+    //         ];
+    //     }
+    
+    //     return $aitList;
+    // }
+    
+//     public function getAITProductDetails($stateId, $userId)
+// {
+//     // Fetch user and validate its existence
+//     $user = $this->find($userId);
+//     if (!$user) {
+//         throw new \Exception("User not found.");
+//     }
+
+//     // Ensure the user has a valid parent relationship (optional)
+//     $userParent = $user->userParent ?? null;
+//     if (!$userParent) {
+//         throw new \Exception("User parent relationship not found.");
+//     }
+
+//     $subFranchiseStates = DB::table('logi_sub_franchise_state as fs')
+//         ->join('state as s', 'fs.state_id', '=', 's.id')
+//         ->where('fs.state_id', $stateId)
+//         ->where('fs.status', 1)
+//         ->select('fs.state_id', 's.name as state_name')
+//         ->distinct()
+//         ->get();
+
+//     $aitList = [];
+
+//     foreach ($subFranchiseStates as $state) {
+//         // Get categories for each state
+//         $categories = DB::table('logi_sub_franchise_state as sp')
+//             ->join('category as c', 'c.id', '=', 'sp.cat_id')
+//             ->where('sp.state_id', $state->state_id)
+//             ->where('sp.status', 1)
+//             ->select('sp.cat_id', 'c.name as category_name', 'c.species')
+//             ->distinct()
+//             ->get();
+
+//         $categoryArray = [];
+
+//         foreach ($categories as $category) {
+//             $subcategories = DB::table('logi_sub_franchise_state as sp')
+//                 ->join('subcategory as sub', 'sub.id', '=', 'sp.sub_id')
+//                 ->where('sp.state_id', $state->state_id)
+//                 ->where('sp.cat_id', $category->cat_id)
+//                 ->where('sp.status', 1)
+//                 ->select('sub.id as sub_id', 'sub.name as subcategory_name', 'sub.description as subcategory_desc', 'sub.image as subcategory_img')
+//                 ->distinct()
+//                 ->get();
+
+//             $subcategoryArray = [];
+
+//             foreach ($subcategories as $subcategory) {
+//                 $rate = null;
+
+//                 // Determine rate based on user role
+//                 if ($userParent->Role === 'franchise') {
+//                     $rate = DB::table('logi_franchise_state')
+//                         ->where('cat_id', $category->cat_id)
+//                         ->where('sub_id', $subcategory->sub_id)
+//                         ->where('f_id', $user->franchise_id)
+//                         ->where('state_id', $stateId)
+//                         ->where('status', 1)
+//                         ->value('rate');
+//                 } else {
+//                     $rate = DB::table('logi_sub_franchise_state')
+//                         ->where('cat_id', $category->cat_id)
+//                         ->where('sub_id', $subcategory->sub_id)
+//                         ->where('sub_f_id', $user->franchise_id)
+//                         ->where('state_id', $stateId)
+//                         ->where('status', 1)
+//                         ->value('rate');
+//                 }
+
+//                 $subcategoryData = [
+//                     'sub_id' => $subcategory->sub_id,
+//                     'subcategory_name' => $subcategory->subcategory_name,
+//                     'subcategory_desc' => $subcategory->subcategory_desc,
+//                     'subcategory_img' => url('/uploads/platinum_img/' . $subcategory->subcategory_img),
+//                     'rate' => $rate,
+//                 ];
+
+//                 $subcategoryArray[] = $subcategoryData;
+//             }
+
+//             $categoryArray[] = [
+//                 'cat_id' => $category->cat_id,
+//                 'category_name' => $category->category_name,
+//                 'species' => $category->species,
+//                 'subcategory_list' => $subcategoryArray,
+//             ];
+//         }
+
+//         $aitList[] = [
+//             'state_id' => $state->state_id,
+//             'state_name' => $state->state_name,
+//             'state_code' => strtoupper(substr($state->state_name, 0, 3)),
+//             'category_list' => $categoryArray,
+//         ];
+//     }
+
+//     return $aitList;
+// }
+
+public function getAITProductDetails($stateId, $userId)
+{
+    try {
+        // Fetch user and validate existence
+        $user = User::find($userId);
+        if (!$user) {
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+
+        // Fetch user's parent relationship if exists
+        $userParent = $user->parent; // Assuming 'parent' is a relationship defined in the User model
+        if (!$userParent) {
+            return response()->json(['error' => 'User parent relationship not found.'], 404);
+        }
+
+        // Fetch states associated with the franchise
+        $subFranchiseStates = DB::table('logi_sub_franchise_state as fs')
+            ->join('state as s', 'fs.state_id', '=', 's.id')
+            ->where('fs.state_id', $stateId)
+            ->where('fs.status', 1)
+            ->select('fs.state_id', 's.name as state_name')
+            ->distinct()
+            ->get();
+
+        $aitList = [];
+
+        foreach ($subFranchiseStates as $state) {
+            // Fetch categories for each state
+            $categories = DB::table('logi_sub_franchise_state as sp')
+                ->join('category as c', 'c.id', '=', 'sp.cat_id')
+                ->where('sp.state_id', $state->state_id)
+                ->where('sp.status', 1)
+                ->select('sp.cat_id', 'c.name as category_name', 'c.species')
+                ->distinct()
+                ->get();
+
+            $categoryArray = [];
+
+            foreach ($categories as $category) {
+                // Fetch subcategories for each category
+                $subcategories = DB::table('logi_sub_franchise_state as sp')
+                    ->join('subcategory as sub', 'sub.id', '=', 'sp.sub_id')
+                    ->where('sp.state_id', $state->state_id)
+                    ->where('sp.cat_id', $category->cat_id)
+                    ->where('sp.status', 1)
+                    ->select('sub.id as sub_id', 'sub.name as subcategory_name', 'sub.description as subcategory_desc', 'sub.image as subcategory_img')
+                    ->distinct()
+                    ->get();
+
+                $subcategoryArray = [];
+
+                foreach ($subcategories as $subcategory) {
+                    // Determine rate based on user role
+                    $rate = null;
+                    if ($userParent->Role === 'franchise') {
+                        $rate = DB::table('logi_franchise_state')
+                            ->where('cat_id', $category->cat_id)
+                            ->where('sub_id', $subcategory->sub_id)
+                            ->where('f_id', $user->franchise_id)
+                            ->where('state_id', $stateId)
+                            ->where('status', 1)
+                            ->value('rate');
+                    } else {
+                        $rate = DB::table('logi_sub_franchise_state')
+                            ->where('cat_id', $category->cat_id)
+                            ->where('sub_id', $subcategory->sub_id)
+                            ->where('sub_f_id', $user->franchise_id)
+                            ->where('state_id', $stateId)
+                            ->where('status', 1)
+                            ->value('rate');
+                    }
+
+                    // Construct subcategory data
+                    $subcategoryData = [
+                        'sub_id' => $subcategory->sub_id,
+                        'subcategory_name' => $subcategory->subcategory_name,
+                        'subcategory_desc' => $subcategory->subcategory_desc,
+                        'subcategory_img' => url('/uploads/platinum_img/' . $subcategory->subcategory_img),
+                        'rate' => $rate,
+                    ];
+
+                    $subcategoryArray[] = $subcategoryData;
+                }
+
+                // Construct category data
+                $categoryArray[] = [
+                    'cat_id' => $category->cat_id,
+                    'category_name' => $category->category_name,
+                    'species' => $category->species,
+                    'subcategory_list' => $subcategoryArray,
+                ];
+            }
+
+            // Construct state data
+            $aitList[] = [
+                'state_id' => $state->state_id,
+                'state_name' => $state->state_name,
+                'state_code' => strtoupper(substr($state->state_name, 0, 3)),
+                'category_list' => $categoryArray,
+            ];
+        }
+
+        return response()->json($aitList, 200);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
+
+
+    /**
+     * Get farmer village data.
+     *
+     * @return array
+     */
+    public function getFarmerVillage($id)
+    {
+        // Using Laravel's query builder instead of Zend_Db_Table
+        return DB::table('logi_farmer_village')
+            ->select('id', 'village')
+            ->where('ait_id', $id)
+            ->where('status', 1)
+            ->orderBy('village', 'asc')
+            ->get();
+    }
+    /**
+     * Get brand list.
+     *
+     * @return array
+     */
+    public function getBrandList()
+    {
+        // Fetch the brands grouped by brand_name without filtering by status
+        return $this->groupBy('brand_name')
+            ->get(); // Retrieve all columns
+    }
+
+    
+    
+}
