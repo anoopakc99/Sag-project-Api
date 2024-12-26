@@ -20,7 +20,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// User authentication route
 Route::post('/login-ait', [ApiController::class, 'loginAitAction']);
+
+//Formar Reagistration
 Route::post('/farmer-registers', [ApiController::class, 'farmerRegister']);
+
+//formar Upadation
 Route::post('/update-farmer-records', [ApiController::class, 'updateFarmerRecord']);
+
+//save Ai records
+Route::post('/save-ai-record', [ApiController::class, 'saveAiRecord']);
 

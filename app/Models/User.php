@@ -269,4 +269,32 @@ class User extends Authenticatable
             return [];
         }
     }
+
+    public function getAITData(Request $request)
+    {
+        $loginId = $request->input('LoginID');
+
+        if (!$loginId) {
+            return response()->json([
+                'error_code' => 1,
+                'response_string' => 'LoginID is required'
+            ], 400);
+        }
+
+        $user = new User();
+        $data = $user->getAITDataByLoginId($loginId);
+
+        if (!$data) {
+            return response()->json([
+                'error_code' => 1,
+                'response_string' => 'User not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'error_code' => 0,
+            'response_string' => 'Success',
+            'data' => $data
+        ]);
+    }
 }

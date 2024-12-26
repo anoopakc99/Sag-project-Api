@@ -240,7 +240,7 @@ class ApiController extends Controller
     }
 
 
-    //Update Farmer Update
+    //The Farmer Updatation Information for Farmer Register
     public function updateFarmerRecord(Request $request)
     {
         // Validate request parameters
@@ -355,4 +355,346 @@ class ApiController extends Controller
             ], 400);
         }
     }
+
+
+    //Save Ai record  to database and return result
+ 
+    //duplicate data entry
+    // public function saveAiRecord(Request $request)
+    // {
+    //     $params = $request->all();
+
+    //     // Extract and sanitize input parameters
+    //     $appKey = $params['appkey'] ?? '';
+    //     $loginID = $params['LoginID'] ?? '';
+    //     $farmerId = $params['farmer_id'] ?? '';
+    //     $latitude = $params['latitude'] ?? '';
+    //     $longitude = $params['longitude'] ?? '';
+    //     $quantity = $params['qty'] ?? '';
+    //     $uniqueCode = $params['unique_code'] ?? '';
+    //     $tagNo = $params['tag_no'] ?? '';
+    //     $strawName = $params['straw_name'] ?? '';
+    //     $gender = $params['gender'] ?? '';
+    //     $deviceId = $params['device_id'] ?? '';
+    //     $deviceType = $params['device_type'] ?? '';
+    //     $category = $params['category'] ?? '';
+    //     $breed = $params['breed'] ?? '';
+    //     $brand = $params['brand'] ?? '';
+    //     $expectedCalvingDate = $params['expected_calving'] ?? '';
+    //     $aiDate = $params['aiDate'] ?? '';
+    //     $aiStatus = $params['aiStatus'] ?? '';
+    //     $pdDate = $params['pdDate'] ?? '';
+    //     $pdStatus = $params['pdStatus'] ?? '';
+    //     $calvingDate = $params['calvingDate'] ?? '';
+    //     $calvingStatus = $params['calvingStatus'] ?? '';
+    //     $serverId = $params['server_id'] ?? '';
+
+    //     DB::beginTransaction();
+
+    //     try {
+    //         // Validate required fields
+    //         if (empty($loginID) || empty($deviceId)) {
+    //             throw new Exception('LoginID and device_id are required.');
+    //         }
+
+    //         // Fetch user details
+    //         $user = DB::table('logi_users')->where('LoginID', $loginID)->first();
+    //         if (!$user) {
+    //             throw new Exception('Invalid LoginID.');
+    //         }
+
+    //         if (strtolower($user->StaffStatus) !== 'ac') {
+    //             throw new Exception('Your account is not active.');
+    //         }
+
+    //         if ($user->App_Access_Status == 2) {
+    //             throw new Exception('This account is deactivated by the admin.');
+    //         }
+
+    //         if (empty($serverId)) {
+    //             // Validate for duplicate AI records
+    //             $existingRecord = DB::table('logi_animal_ai')
+    //                 ->where([
+    //                     ['aiDate', '=', $aiDate],
+    //                     ['ait_id', '=', $user->id],
+    //                     ['farmer_id', '=', $farmerId],
+    //                     ['breed', '=', $breed],
+    //                     ['tag_no', '=', $tagNo],
+    //                 ])->first();
+
+    //             if ($existingRecord) {
+    //                 return response()->json([
+    //                     'error_code' => 200,
+    //                     'response_string' => 'Duplicate AI record detected.',
+    //                     'serverGeneratedId' => $existingRecord->id,
+    //                     'batchName' => $existingRecord->batchName,
+    //                     'expiry_date' => $existingRecord->expiry_date,
+    //                     'uniqueCode_status' => $existingRecord->uniqueCode_status,
+    //                     'product' => $existingRecord->product,
+    //                     'batch' => $existingRecord->batch,
+    //                     'manufacturer' => $existingRecord->manufacturer,
+    //                     'mfg_date' => $existingRecord->mfg_date,
+    //                     'indicator' => 'ai',
+    //                 ]);
+    //             }
+
+    //             // Prepare and insert new AI record
+    //             $insertData = [
+    //                 'ait_id' => $user->id,
+    //                 'farmer_id' => $farmerId,
+    //                 'latitude' => $latitude,
+    //                 'longitude' => $longitude,
+    //                 'qty' => $quantity,
+    //                 'tag_no' => $tagNo,
+    //                 'unique_code' => $uniqueCode,
+    //                 'straw_name' => $strawName,
+    //                 'breed' => $breed,
+    //                 'brand' => $brand,
+    //                 'category' => $category,
+    //                 'gender' => $gender,
+    //                 'expected_calving_date' => $expectedCalvingDate,
+    //                 'aiDate' => $aiDate,
+    //             ];
+
+    //             if ($pdStatus === '1') {
+    //                 $insertData['ai_status'] = 1;
+    //                 $insertData['pd_status'] = 1;
+    //                 $insertData['pdDate'] = $pdDate;
+    //             } elseif ($pdStatus === '2') {
+    //                 $insertData['ai_status'] = 2;
+    //                 $insertData['pd_status'] = 2;
+    //                 $insertData['pdDate'] = $pdDate;
+    //             }
+
+    //             if ($aiStatus === '2' && $calvingStatus === '0') {
+    //                 $insertData['gender'] = $gender;
+    //                 $insertData['calving_status'] = 1;
+    //                 $insertData['calvingDate'] = $calvingDate;
+    //             }
+
+    //             $lastInsertId = DB::table('logi_animal_ai')->insertGetId($insertData);
+
+    //             DB::commit();
+    //             return response()->json([
+    //                 'error_code' => 0,
+    //                 'response_string' => 'AI record saved successfully.',
+    //                 'serverGeneratedId' => $lastInsertId,
+    //             ]);
+    //         } else {
+    //             // Update existing record
+    //             $updateData = [];
+
+    //             if ($pdStatus === '1' && empty($calvingDate)) {
+    //                 $updateData = [
+    //                     'ai_status' => 1,
+    //                     'pd_status' => 1,
+    //                     'pdDate' => $pdDate,
+    //                 ];
+    //             } elseif ($pdStatus === '2') {
+    //                 $updateData = [
+    //                     'ai_status' => 2,
+    //                     'pd_status' => 2,
+    //                     'calving_status' => 2,
+    //                     'pdDate' => $pdDate,
+    //                 ];
+    //             } elseif (!empty($calvingDate)) {
+    //                 $updateData = [
+    //                     'calving_status' => 1,
+    //                     'ai_status' => 1,
+    //                     'gender' => $gender,
+    //                     'pd_status' => 1,
+    //                     'calvingDate' => $calvingDate,
+    //                 ];
+    //             }
+
+    //             DB::table('logi_animal_ai')->where('id', $serverId)->update($updateData);
+
+    //             DB::commit();
+    //             return response()->json([
+    //                 'error_code' => 0,
+    //                 'response_string' => 'AI record updated successfully.',
+    //             ]);
+    //         }
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'error_code' => 1,
+    //             'response_string' => $e->getMessage(),
+    //         ]);
+    //     }
+    // }
+
+    //same name data not hit in database not duplicated entry
+    public function saveAiRecord(Request $request)
+    {
+        $params = $request->all();
+
+        // Extract and sanitize input parameters
+        $appKey = $params['appkey'] ?? '';
+        $loginID = $params['LoginID'] ?? '';
+        $farmerId = $params['farmer_id'] ?? '';
+        $latitude = $params['latitude'] ?? '';
+        $longitude = $params['longitude'] ?? '';
+        $quantity = $params['qty'] ?? '';
+        $uniqueCode = $params['unique_code'] ?? '';
+        $tagNo = $params['tag_no'] ?? '';
+        $strawName = $params['straw_name'] ?? '';
+        $gender = $params['gender'] ?? '';
+        $deviceId = $params['device_id'] ?? '';
+        $deviceType = $params['device_type'] ?? '';
+        $category = $params['category'] ?? '';
+        $breed = $params['breed'] ?? '';
+        $brand = $params['brand'] ?? '';
+        $expectedCalvingDate = $params['expected_calving'] ?? '';
+        $aiDate = $params['aiDate'] ?? '';
+        $aiStatus = $params['aiStatus'] ?? '';
+        $pdDate = $params['pdDate'] ?? '';
+        $pdStatus = $params['pdStatus'] ?? '';
+        $calvingDate = $params['calvingDate'] ?? '';
+        $calvingStatus = $params['calvingStatus'] ?? '';
+        $serverId = $params['server_id'] ?? '';
+
+        DB::beginTransaction();
+
+        try {
+            // Validate required fields
+            if (empty($loginID) || empty($deviceId)) {
+                throw new Exception('LoginID and device_id are required.');
+            }
+
+            // Fetch user details
+            $user = DB::table('logi_users')->where('LoginID', $loginID)->first();
+            if (!$user) {
+                throw new Exception('Invalid LoginID.');
+            }
+
+            if (strtolower($user->StaffStatus) !== 'ac') {
+                throw new Exception('Your account is not active.');
+            }
+
+            if ($user->App_Access_Status == 2) {
+                throw new Exception('This account is deactivated by the admin.');
+            }
+
+            $responseData = [
+                'error_code' => '0',
+                'response_string' => '',
+                'serverGeneratedId' => '0',
+                'unique_code_verification_data' => null,
+                'indicator' => '',
+            ];
+
+            if (empty($serverId)) {
+                // Validate for duplicate AI records
+                $existingRecord = DB::table('logi_animal_ai')
+                    ->where([
+                        ['aiDate', '=', $aiDate],
+                        ['ait_id', '=', $user->id],
+                        ['farmer_id', '=', $farmerId],
+                        ['breed', '=', $breed],
+                        ['tag_no', '=', $tagNo],
+                    ])->first();
+
+                if ($existingRecord) {
+                    $responseData['error_code'] = '200';
+                    $responseData['response_string'] = 'Duplicate AI record detected.';
+                    $responseData['serverGeneratedId'] = $existingRecord->id;
+                    $responseData['unique_code_verification_data'] = $existingRecord->uniqueCode_status;
+                    $responseData['indicator'] = 'ai';
+
+                    return response()->json($responseData);
+                }
+
+                // Prepare and insert new AI record
+                $insertData = [
+                    'ait_id' => $user->id,
+                    'farmer_id' => $farmerId,
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                    'qty' => $quantity,
+                    'tag_no' => $tagNo,
+                    'unique_code' => $uniqueCode,
+                    'straw_name' => $strawName,
+                    'breed' => $breed,
+                    'brand' => $brand,
+                    'category' => $category,
+                    'gender' => $gender,
+                    'expected_calving_date' => $expectedCalvingDate,
+                    'aiDate' => $aiDate,
+                ];
+
+                if ($pdStatus === '1') {
+                    $insertData['ai_status'] = 1;
+                    $insertData['pd_status'] = 1;
+                    $insertData['pdDate'] = $pdDate;
+                } elseif ($pdStatus === '2') {
+                    $insertData['ai_status'] = 2;
+                    $insertData['pd_status'] = 2;
+                    $insertData['pdDate'] = $pdDate;
+                }
+
+                if ($aiStatus === '2' && $calvingStatus === '0') {
+                    $insertData['gender'] = $gender;
+                    $insertData['calving_status'] = 1;
+                    $insertData['calvingDate'] = $calvingDate;
+                }
+
+                $lastInsertId = DB::table('logi_animal_ai')->insertGetId($insertData);
+
+                $responseData['response_string'] = 'Calving of animal done successfully.';
+                $responseData['serverGeneratedId'] = (string)$lastInsertId;
+                $responseData['indicator'] = 'calving';
+
+                DB::commit();
+                return response()->json($responseData);
+            } else {
+                // Update existing record
+                $updateData = [];
+
+                if ($pdStatus === '1' && empty($calvingDate)) {
+                    $updateData = [
+                        'ai_status' => 1,
+                        'pd_status' => 1,
+                        'pdDate' => $pdDate,
+                    ];
+                } elseif ($pdStatus === '2') {
+                    $updateData = [
+                        'ai_status' => 2,
+                        'pd_status' => 2,
+                        'calving_status' => 2,
+                        'pdDate' => $pdDate,
+                    ];
+                } elseif (!empty($calvingDate)) {
+                    $updateData = [
+                        'calving_status' => 1,
+                        'ai_status' => 1,
+                        'gender' => $gender,
+                        'pd_status' => 1,
+                        'calvingDate' => $calvingDate,
+                    ];
+                }
+
+                DB::table('logi_animal_ai')->where('id', $serverId)->update($updateData);
+
+                $responseData['response_string'] = 'AI record updated successfully.';
+                $responseData['serverGeneratedId'] = $serverId;
+                $responseData['indicator'] = 'update';
+
+                DB::commit();
+                return response()->json($responseData);
+            }
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'error_code' => '1',
+                'response_string' => $e->getMessage(),
+                'serverGeneratedId' => '0',
+                'unique_code_verification_data' => null,
+                'indicator' => '',
+            ]);
+        }
+    }
+
+
 }
