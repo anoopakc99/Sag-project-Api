@@ -8,6 +8,10 @@ use App\Models\Myfarmer;
 use Illuminate\Support\Facades\DB;
 use App\Models\Village;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use App\Models\FarmerVillage;
+use Exception;
 
 class ApiController extends Controller
 {
@@ -112,8 +116,6 @@ class ApiController extends Controller
     }
 
     //Famer Registration
-   
-
     public function farmerRegister(Request $request)
     {
         $params = $request->all();
@@ -241,62 +243,116 @@ class ApiController extends Controller
     //Update Farmer Update
     public function updateFarmerRecord(Request $request)
     {
-        // Validate the incoming request
-        $validated = $request->validate([
-            'appkey' => 'required',
-            'Id' => 'required|integer',
-            'LoginID' => 'required',
-            'device_id' => 'required',
-            'FarmerName' => 'required',
-            'FarmerVillage' => 'required',
+        // Validate request parameters
+        $validator = Validator::make($request->all(), [
+            'appkey' => 'required|string',
+            'LoginID' => 'required|string',
+            'device_id' => 'required|string',
+            'Id' => 'required|numeric',
+            'farmer_name' => 'required|string',
+            'mobile_no' => 'required|string',
+            'farmer_state' => 'required',
+            'farmer_village' => 'required',
+            'village_name' => 'required_if:farmer_village,0003',
+            'longitude' => 'nullable|string',
+            'latitude' => 'nullable|string',
+            'ait_et_whatsapp' => 'nullable|string',
+            'landline_no' => 'nullable|string',
+            'farmer_img' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'error_code' => 1,
+                'response_string' => $validator->errors()->first()
+            ], 400);
+        }
+
+        $errorCode = 1;
+        $success = false;
+
         DB::beginTransaction();
+
         try {
-            // Check or create the village
-            $village = FarmerVillage::firstOrCreate(['village' => $validated['FarmerVillage']]);
+            // Validate User
+            $user = User::where('LoginID', $request->LoginID)->first();
 
-            // Fetch the farmer record
-            $farmer = Myfarmer::findOrFail($validated['Id']);
-
-            // Update farmer details
-            $farmer->update([
-                'FarmerName' => $validated['FarmerName'],
-                'MobileNo' => $request->input('MobileNo'),
-                'stateId' => $request->input('farmer_state'),
-                'villageId' => $village->id,
-                'longitude' => $request->input('longitude'),
-                'latitude' => $request->input('latitude'),
-                'whatsapp_mobile_no' => $request->input('whatsapp_mobile_no'),
-                'RegisterDate' => $request->input('RegisterDate'),
-            ]);
-
-            // Handle the farmer image update if provided
-            if ($request->hasFile('farmer_img')) {
-                // Delete the old image if it exists
-                if ($farmer->farmer_img) {
-                    Storage::delete($farmer->farmer_img);
-                }
-
-                // Store the new image
-                $path = $request->file('farmer_img')->store('public/farmer_images');
-                $farmer->update(['farmer_img' => $path]);
+            if (!$user || $request->appkey != $user->device_token) {
+                throw new \Exception("Invalid appkey.");
             }
 
-            DB::commit();
+            if ($user->App_Access_Status == 2) {
+                $errorCode = 2;
+                throw new \Exception("This account deactivated by admin.");
+            }
 
-            return response()->json([
+            // Find farmer
+            $farmer = Myfarmer::find($request->Id);
+            if (!$farmer) {
+                throw new \Exception("Farmer not found.");
+            }
+
+            // Handle village
+            $villageId = $request->farmer_village;
+            if ($request->farmer_village == '0003') {
+                $village = FarmerVillage::create([
+                    'village' => $request->village_name,
+                    'ait_id' => $user->id,
+                ]);
+                $villageId = $village->id;
+            }
+
+            // Prepare farmer data
+            $farmerData = [
+                'FarmerName' => $request->farmer_name,
+                'MobileNo' => $request->mobile_no,
+                'stateId' => $request->farmer_state,
+                'villageId' => $villageId,
+                'longitude' => $request->longitude ?? '',
+                'latitude' => $request->latitude ?? '',
+                'whatsapp_mobile_no' => $request->ait_et_whatsapp ?? '',
+                'landline_no' => $request->landline_no,
+            ];
+
+            // Handle image upload
+            if ($request->hasFile('farmer_img')) {
+                // Delete old image if exists
+                if ($farmer->farmer_img) {
+                    Storage::disk('public')->delete('uploads/farmer_img/' . $farmer->farmer_img);
+                }
+
+                $image = $request->file('farmer_img');
+                $imageName = 'farmer-' . time() . '.' . $image->getClientOriginalExtension();
+                $image->storeAs('uploads/farmer_img', $imageName, 'public');
+                $farmerData['farmer_img'] = $imageName;
+            }
+
+            // Update farmer
+            $farmer->update($farmerData);
+
+            DB::commit();
+            $success = true;
+
+            $response = [
                 'error_code' => 0,
-                'response_string' => 'Farmer records have been successfully updated.',
+                'response_string' => 'Farmer record updated successfully.',
                 'serverGeneratedId' => $farmer->id,
-                'FarmerCode' => Myfarmer::generateFarmerCode($farmer->id),
-            ]);
+                'FarmerCode' => $farmer->FarmerCode,
+            ];
+
+            if ($request->farmer_village == '0003') {
+                $response['villageId'] = $villageId;
+                $response['villageName'] = $request->village_name;
+            }
+
+            return response()->json($response);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'error_code' => 3,
-                'response_string' => $e->getMessage(),
-            ]);
+                'error_code' => $errorCode,
+                'response_string' => $e->getMessage()
+            ], 400);
         }
     }
 }
