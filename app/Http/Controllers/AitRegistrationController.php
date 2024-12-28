@@ -61,20 +61,6 @@ class AitRegistrationController extends Controller
     }
     
     
-
-    // public function getTehsils(Request $request)
-    // {
-    //     $tehsils = DB::table('logi_area_mapping')
-    //         ->join('logi_theshil_detail', 'logi_area_mapping.tehshil_id', '=', 'logi_theshil_detail.id')
-    //         ->where('logi_area_mapping.district_id', $request->district_id)
-    //         ->select('logi_area_mapping.tehshil_id as id', 'logi_theshil_detail.tehshil_name as name')
-    //         ->groupBy('logi_area_mapping.tehshil_id', 'logi_theshil_detail.tehshil_name')
-    //         ->orderBy('logi_theshil_detail.tehshil_name')
-    //         ->get();
-
-    //     return response()->json($tehsils);
-    // }
-
     public function getTehsils(Request $request)
     {
         $tehsils = DB::table('logi_area_mapping')
@@ -99,11 +85,82 @@ class AitRegistrationController extends Controller
     }
 
     
-
-    public function submitForm(Request $request)
+//Ait Registraion new user generate the AIT data for the current user
+    public function submitAITRegistration(Request $request)
     {
-        $loginId = 'AIT' . rand(100000, 999999); // Example login ID generation
-        DB::table('logi_users')->insert($request->all());
-        return response()->json(['login_id' => $loginId]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required',
+                'email' => 'required|email',
+                'mobile_no' => 'required',
+                'whatsapp_no' => 'required',
+                'address' => 'required',
+                'state' => 'required',
+                'district' => 'required',
+                'tehsil' => 'required',
+                'sales_person' => 'required',
+                'brand' => 'required',
+                'breed' => 'required',
+                'monthly_ai' => 'required',
+                'container_type' => 'required',
+            ]);
+
+            // Check for existing user
+            $existingUser = DB::table('logi_users')
+                ->where('MobileNo', $request->mobile_no)
+                ->first();
+
+            if ($existingUser) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Mobile number already registered with login ID: ' . $existingUser->LoginID
+                ], 422);
+            }
+
+            // Generate user data
+            $lastId = DB::table('logi_users')->max('id') + 1;
+            $loginId = 'AIT00' . $lastId;
+
+            $userData = [
+                'StaffName' => strtoupper($request->name),
+                'Email' => $request->email,
+                'MobileNo' => $request->mobile_no,
+                'Address_Curr' => $request->address,
+                'Address_Per' => $request->address,
+                'Role' => 'AIT',
+                'franchise_id' => $request->sales_person,
+                'Password' => '123456',
+                'under' => 'subfranchise',
+                'Gender' => 'M',
+                'mapped_state' => $request->state,
+                'mapped_district' => $request->district,
+                'mapped_theshil' => $request->tehsil,
+                'mapped_block' => $request->tehsil,
+                'mapped_village' => $request->tehsil,
+                'brand' => $request->brand,
+                'breed' => $request->breed,
+                'monthly_ai' => $request->monthly_ai,
+                'container_type' => $request->container_type,
+                'stateID' => $request->state,
+                'ait_et_whatsappphone' => $request->whatsapp_no,
+                'LoginID' => $loginId,
+                'rendom_no' => $lastId . '01001',
+            ];
+
+            DB::table('logi_users')->insert($userData);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Registration successful!',
+                'login_id' => $loginId
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
+    
 }
