@@ -81,7 +81,7 @@
             </div>
         </form>
     </div>
-
+{{-- 
     <script>
         $(document).ready(function () {
             // Fetch districts based on state
@@ -153,6 +153,86 @@
                 }
             });
         }
+    </script> --}}
+    <script>
+        $(document).ready(function () {
+            // Fetch districts based on state
+            $('#state').change(function () {
+                const stateId = $(this).val();
+                $('#district').empty().append('<option value="">Select District</option>');
+                $('#sales_person').empty().append('<option value="">Select Sales Person</option>');
+                $('#tehsil').empty().append('<option value="">Select Tehsil</option>'); // Clear tehsil dropdown
+    
+                if (stateId) {
+                    $.get('/get-districts', { state_id: stateId }, function (data) {
+                        if (data.length > 0) {
+                            data.forEach(district => {
+                                $('#district').append(`<option value="${district.id}">${district.district_name}</option>`);
+                            });
+                        } else {
+                            $('#district').append('<option>No districts found</option>');
+                        }
+                    }).fail(function (xhr, status, error) {
+                        console.error('Error fetching districts:', error);
+                        $('#district').append('<option>Error fetching data</option>');
+                    });
+                }
+            });
+    
+            // Fetch salespersons and tehsils based on district
+            $('#district').change(function () {
+                const stateId = $('#state').val();
+                const districtId = $(this).val();
+                $('#sales_person').empty().append('<option value="">Select Sales Person</option>');
+                $('#tehsil').empty().append('<option value="">Select Tehsil</option>'); // Clear tehsil dropdown
+    
+                if (stateId && districtId) {
+                    // Fetch salespersons
+                    $.get('/get-sales-persons', { state_id: stateId, district_id: districtId }, function (data) {
+                        if (data.length > 0) {
+                            data.forEach(person => {
+                                $('#sales_person').append(`<option value="${person.id}">${person.name}</option>`);
+                            });
+                        } else {
+                            $('#sales_person').append('<option>No salespersons found</option>');
+                        }
+                    }).fail(function (xhr, status, error) {
+                        console.error('Error fetching sales persons:', error);
+                        $('#sales_person').append('<option>Error fetching data</option>');
+                    });
+    
+                    // Fetch tehsils
+                    $.get('/get-tehsils', { district_id: districtId }, function (data) {
+                        if (data.length > 0) {
+                            data.forEach(tehsil => {
+                                $('#tehsil').append(`<option value="${tehsil.id}">${tehsil.name}</option>`);
+                            });
+                        } else {
+                            $('#tehsil').append('<option>No tehsils found</option>');
+                        }
+                    }).fail(function (xhr, status, error) {
+                        console.error('Error fetching tehsils:', error);
+                        $('#tehsil').append('<option>Error fetching data</option>');
+                    });
+                }
+            });
+        });
+    
+        // Submit form
+        function submitForm() {
+            const formData = $('#registrationForm').serialize();
+            $.post('/submit-ait-registration', formData, function (data) {
+                if (data.login_id) {
+                    alert(`Registration Successful! Login ID: ${data.login_id}`);
+                } else {
+                    alert('Registration Failed!');
+                }
+            }).fail(function (xhr, status, error) {
+                console.error('Error submitting form:', error);
+                alert('Error submitting form. Please try again.');
+            });
+        }
     </script>
+    
 </body>
 </html>

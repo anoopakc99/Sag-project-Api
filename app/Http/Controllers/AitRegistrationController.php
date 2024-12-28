@@ -62,16 +62,43 @@ class AitRegistrationController extends Controller
     
     
 
+    // public function getTehsils(Request $request)
+    // {
+    //     $tehsils = DB::table('logi_area_mapping')
+    //         ->join('logi_theshil_detail', 'logi_area_mapping.tehshil_id', '=', 'logi_theshil_detail.id')
+    //         ->where('logi_area_mapping.district_id', $request->district_id)
+    //         ->select('logi_area_mapping.tehshil_id as id', 'logi_theshil_detail.tehshil_name as name')
+    //         ->groupBy('logi_area_mapping.tehshil_id', 'logi_theshil_detail.tehshil_name')
+    //         ->orderBy('logi_theshil_detail.tehshil_name')
+    //         ->get();
+
+    //     return response()->json($tehsils);
+    // }
+
     public function getTehsils(Request $request)
     {
-        $tehsils = DB::table('tehsils')
-            ->where('district_id', $request->district_id)
-            ->where('status', 1)
-            ->distinct()
-            ->get(['id', 'name']);
+        $tehsils = DB::table('logi_area_mapping')
+            ->join('logi_theshil_detail', 'logi_area_mapping.tehshil_id', '=', 'logi_theshil_detail.id')
+            ->join('logi_users', 'logi_area_mapping.sub_fre_id', '=', 'logi_users.id')
+            ->where('logi_area_mapping.district_id', $request->district_id)
+            ->where('logi_area_mapping.status', 0)
+            ->where(function ($query) use ($request) {
+                if ($request->filled('sales_person')) {
+                    $query->where('logi_users.LoginID', $request->sales_person);
+                }
+            })
+            ->select(
+                'logi_area_mapping.tehshil_id as id',
+                'logi_theshil_detail.tehshil_name as name'
+            )
+            ->groupBy('logi_area_mapping.tehshil_id', 'logi_theshil_detail.tehshil_name')
+            ->orderBy('logi_theshil_detail.tehshil_name')
+            ->get();
 
         return response()->json($tehsils);
     }
+
+    
 
     public function submitForm(Request $request)
     {
