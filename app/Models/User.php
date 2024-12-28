@@ -13,7 +13,10 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'logi_users';
-    
+    public function getWebLoginIdAttribute()
+    {
+        return $this->WebLoginID;
+    }
     protected $guarded = [];
 
     protected $hidden = [
@@ -297,4 +300,43 @@ class User extends Authenticatable
             'data' => $data
         ]);
     }
+
+
+    public function getSubFranchiseBlockList($tehsil_id, $sub_fre_id)
+    {
+        $db = Zend_Db_Table::getDefaultAdapter();
+        $sql = "
+            SELECT am.block_id, b.block_name 
+            FROM logi_area_mapping AS am
+            LEFT JOIN logi_block_detail AS b ON (b.id = am.block_id)
+            WHERE am.sub_fre_id = ? AND am.tehshil_id = ?
+            GROUP BY am.block_id 
+            ORDER BY b.block_name";
+        return $db->fetchAll($sql, [$sub_fre_id, $tehsil_id]);
+    }
+
+    public function getSubFranchiseVillageList($block_id, $sub_fre_id)
+    {
+        $db = Zend_Db_Table::getDefaultAdapter();
+        $sql = "
+            SELECT am.village_id, v.village_name 
+            FROM logi_area_mapping AS am
+            LEFT JOIN logi_village_detail AS v ON (v.id = am.village_id)
+            WHERE am.sub_fre_id = ? AND am.block_id = ?
+            GROUP BY am.village_id 
+            ORDER BY v.village_name";
+        return $db->fetchAll($sql, [$sub_fre_id, $block_id]);
+    }
+
+    public function getMappedDistrictList($state_id)
+    {
+        $db = Zend_Db_Table::getDefaultAdapter();
+        $sql = "
+            SELECT d.id AS district_id, d.district_name 
+            FROM logi_district_detail AS d
+            WHERE d.state_id = ? AND d.duplicate_entry = '0'
+            ORDER BY d.district_name";
+        return $db->fetchAll($sql, [$state_id]);
+    }
+  
 }

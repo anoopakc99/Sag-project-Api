@@ -1,0 +1,189 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+
+class AitRegistrationController extends Controller
+{
+    /**
+     * Handle user registration process
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+
+     public function showForm()
+    {
+        $states = DB::table('state')
+            ->where('status', 1)
+            ->orderBy('name')
+            ->get();
+            
+        $subfranchises = DB::table('logi_users')
+            ->where('Role', 'subfranchise')
+            ->select('id', 'StaffName', 'LoginID')
+            ->get();
+            
+        return view('ait.add-user', compact('states', 'subfranchises'));
+    }
+
+    public function getStates($subfranchiseId)
+    {
+        $states = DB::table('states')
+            ->where('sub_f_id', $subfranchiseId)
+            ->select('state_id', 'state_name')
+            ->get();
+            
+        return response()->json(['states' => $states]);
+    }
+
+    public function getDistricts($stateId, $subfranchiseId)
+    {
+        $districts = DB::table('districts')
+            ->where('state_id', $stateId)
+            ->where('sub_f_id', $subfranchiseId)
+            ->select('district_id', 'district_name')
+            ->get();
+            
+        return response()->json(['districts' => $districts]);
+    }
+
+    public function addNewUser(Request $request)
+    {
+        // 1. Validate input data
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:15',
+            'subfranchiseId' => 'required|exists:logi_users,id',
+            'state' => 'required',
+            'district' => 'required',
+            'tehsilId' => 'required',
+            'email' => 'nullable|email|max:255',
+            'permanent_address' => 'nullable|string|max:255',
+            'curr_address' => 'nullable|string|max:255',
+            'brand' => 'nullable|string|max:255',
+            'breed' => 'nullable|string|max:255',
+            'monthly_ai' => 'nullable|integer',
+            'container_type' => 'nullable|string|max:255',
+            'whats_app_no' => 'nullable|string|max:15',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // 2. Check for existing user
+        $existingUser = $this->checkExistingUser($request->phone);
+        if ($existingUser) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User already exists with Login ID: ' . $existingUser->LoginID
+            ], 409);
+        }
+
+        // 3. Get subfranchise details
+        $subfranchise = $this->getSubfranchiseDetails($request->subfranchiseId);
+
+        // 4. Prepare user data
+        $userData = [
+            'StaffName' => strtoupper($request->name),
+            'Email' => $request->email,
+            'MobileNo' => $request->phone,
+            'Address_Per' => $request->permanent_address ?? '',
+            'Address_Curr' => $request->curr_address ?? '',
+            'Role' => 'AIT',
+            'franchise_id' => $request->subfranchiseId,
+            'Password' => bcrypt('123456'), // Consider making this more secure
+            'under' => 'subfranchise',
+            'Gender' => 'M',
+            'parent_id' => $subfranchise->parent_id ?? null,
+            'mapped_state' => $request->state,
+            'mapped_district' => $request->district,
+            'mapped_theshil' => $request->tehsilId,
+            'brand' => $request->brand ?? '',
+            'breed' => $request->breed ?? '',
+            'monthly_ai' => $request->monthly_ai,
+            'container_type' => $request->container_type ?? '',
+            'ait_et_whatsappphone' => $request->whats_app_no,
+        ];
+
+        // 5. Insert user and generate login ID
+        try {
+            DB::beginTransaction();
+            
+            $newUserId = DB::table('logi_users')->insertGetId($userData);
+            $loginId = 'AIT00' . $newUserId;
+            
+            // Update login ID and random number
+            DB::table('logi_users')
+                ->where('id', $newUserId)
+                ->update([
+                    'LoginID' => $loginId,
+                    'rendom_no' => $newUserId . '01001'
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Registration successful. Login ID: {$loginId}",
+                'data' => ['login_id' => $loginId]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Registration failed. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if user already exists with given phone number
+     */
+    private function checkExistingUser(string $phone)
+    {
+        return DB::table('logi_users')
+            ->where('MobileNo', $phone)
+            ->first();
+    }
+
+    /**
+     * Get subfranchise details
+     */
+    private function getSubfranchiseDetails(int $subfranchiseId)
+    {
+        return DB::table('logi_users')
+            ->where('id', $subfranchiseId)
+            ->first();
+    }
+}
+
+
+
+//     public function getSalesPersons(Request $request)
+//     {
+   
+//        $salesPersons = DB::table('logi_area_mapping')
+//        ->join('logi_users', 'logi_area_mapping.sub_fre_id', '=', 'logi_users.id') // Joining with logi_users
+//        ->select(
+//            'logi_area_mapping.id',
+//            'logi_users.StaffName as name', // Fetching user name
+//            'logi_users.LoginID'           // Fetching user LoginID
+//        )
+//        ->where('logi_area_mapping.district_id', $request->district_id) // Filter by district_id
+//        ->where('logi_area_mapping.status', 0) // Filter by status
+//        ->distinct('StaffName') // Ensure unique results
+//        ->get();
+
+//        return response()->json($salesPersons);
+//    }

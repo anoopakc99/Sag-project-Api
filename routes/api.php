@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AitRegistrationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,4 +32,6 @@ Route::post('/update-farmer-records', [ApiController::class, 'updateFarmerRecord
 
 //save Ai records
 Route::post('/save-ai-record', [ApiController::class, 'saveAiRecord']);
+
+Route::post('/register-ait', [AitRegistrationController::class, 'addNewUser']);
 

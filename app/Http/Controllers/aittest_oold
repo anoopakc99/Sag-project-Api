@@ -1,0 +1,66 @@
+
+public function addNewUser(Request $request)
+{
+    $params = $request->all();
+
+    // Validate input
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'required|string|max:15|unique:logi_users,MobileNo',
+        'email' => 'nullable|email',
+        'state' => 'required',
+        'district' => 'required',
+        'tehsilId' => 'required',
+        'subfranchiseId' => 'required',
+    ]);
+
+    $subFranchise = DB::table('logi_users')->where('id', $params['subfranchiseId'])->first();
+    if (!$subFranchise) {
+        return response()->json(['error' => 'Invalid Sub Franchise'], 400);
+    }
+
+    // Get the next ID
+    $nextId = DB::table('logi_users')->max('id') + 1;
+
+    // Generate LoginID
+    $loginId = 'AIT00' . $nextId;
+
+    $userData = [
+        'StaffName' => strtoupper($params['name']),
+        'Email' => $params['email'] ?? null,
+        'MobileNo' => $params['phone'],
+        'Address_Per' => $params['permanent_address'] ?? null,
+        'Address_Curr' => $params['curr_address'] ?? null,
+        'Role' => 'AIT',
+        'franchise_id' => $params['subfranchiseId'],
+        'Password' => bcrypt('123456'),
+        'under' => $params['under'] ?? 'subfranchise',
+        'Gender' => 'M',
+        'parent_id' => $subFranchise->parent_id,
+        'mapped_state' => $params['state'],
+        'mapped_district' => $params['district'],
+        'mapped_theshil' => $params['tehsilId'],
+        'brand' => $params['brand'] ?? null,
+        'breed' => $params['breed'] ?? null,
+        'monthly_ai' => $params['monthly_ai'] ?? null,
+        'container_type' => $params['container_type'] ?? null,
+        'stateID' => $params['state'],
+        'ait_et_whatsappphone' => $params['whats_app_no'] ?? null,
+        'LoginID' => $loginId,
+    ];
+
+    // Insert user
+    $userId = DB::table('logi_users')->insertGetId($userData);
+
+    // Update only the random number
+    DB::table('logi_users')->where('id', $userId)->update([
+        'rendom_no' => $userId . '01001',
+    ]);
+
+    // Return JSON response
+    return response()->json([
+        'success' => true,
+        'message' => "Hi {$params['name']}, you are registered successfully.",
+        'loginId' => $loginId,
+    ]);
+}
